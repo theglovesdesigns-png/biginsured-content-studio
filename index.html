@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BIG Content Studio Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans:    ['DM Sans', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+              mono:    ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              red: {
+                600: '#dc2020', 700: '#b91c1c',
+              },
+              royal: {
+                600: '#1d4ed8', 700: '#1e40af',
+              },
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      /* CSS variables declared AFTER Tailwind so they win */
+      :root, .dark {
+        --red:          #dc2020;
+        --red-hover:    #b91c1c;
+        --red-dim:      rgba(220,32,32,0.12);
+        --blue:         #1d4ed8;
+        --blue-hover:   #1e40af;
+        --blue-dim:     rgba(29,78,216,0.15);
+        --white:        #ffffff;
+        --bg-base:      #0a0a0f;
+        --bg-panel:     #111118;
+        --bg-elevated:  #1a1a24;
+        --bg-hover:     #22222e;
+        --border:       #2a2a38;
+        --border-bright:#3a3a4e;
+        --text-primary: #f8f8ff;
+        --text-secondary:#a0a0b8;
+        --text-muted:   #5a5a72;
+        --btn-outline:  3px solid #000000;
+      }
+      .light {
+        --bg-base:      #f0f0f5;
+        --bg-panel:     #ffffff;
+        --bg-elevated:  #e8e8f0;
+        --bg-hover:     #e0e0ea;
+        --border:       #d0d0dc;
+        --border-bright:#b0b0c4;
+        --text-primary: #0a0a1a;
+        --text-secondary:#444460;
+        --text-muted:   #888898;
+      }
+      body {
+        background-color: var(--bg-base) !important;
+        color: var(--text-primary) !important;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
+    "react-dropzone": "https://aistudiocdn.com/react-dropzone@^14.3.8",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "jszip": "https://esm.sh/jszip@3.10.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="dark">
+    <script>
+      if (typeof process === 'undefined') {
+        window.process = { env: {} };
+      }
+      // Persist dark/light preference
+      const saved = localStorage.getItem('big-theme');
+      if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
+      }
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
