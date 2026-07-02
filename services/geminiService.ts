@@ -10,7 +10,7 @@ import { getPositiveFeedbackExamples, getNegativeFeedbackExamples } from './feed
 const MODELS = {
     PRO:          'gemini-2.5-pro',              // Deep reasoning, blog writing, series
     FLASH:        'gemini-2.5-flash',            // Fast tasks, analysis, trends
-    IMAGE_GEN:    'gemini-2.0-flash-preview-image-generation', // Image generation
+    IMAGE_GEN:    'gemini-2.5-flash-image', // Image generation
     TTS:          'gemini-2.5-flash-preview-tts', // Text-to-speech
 } as const;
 
