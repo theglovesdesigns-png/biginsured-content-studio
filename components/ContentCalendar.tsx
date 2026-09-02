@@ -31,7 +31,7 @@ interface ScheduledPost {
 }
 
 interface ContentCalendarProps {
-    onNavigate?: (tab: 'landing' | 'settings' | 'generate' | 'analyze' | 'upload' | 'gallery' | 'blog' | 'voiceover' | 'pipeline' | 'similarity' | 'trends' | 'balance' | 'calendar') => void;
+    onNavigate?: (tab: 'landing' | 'settings' | 'generate' | 'analyze' | 'upload' | 'gallery' | 'blog' | 'pipeline' | 'similarity' | 'trends' | 'balance' | 'calendar') => void;
 }
 
 const CATEGORY_STYLES: Record<string, { bg: string, text: string, border: string, dot: string }> = {
