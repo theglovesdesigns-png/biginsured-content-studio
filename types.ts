@@ -1,5 +1,4 @@
-
-export type Tab = 'landing' | 'settings' | 'generate' | 'analyze' | 'upload' | 'gallery' | 'blog' | 'voiceover' | 'pipeline' | 'trends' | 'calendar' | 'auditor';
+export type Tab = 'landing' | 'settings' | 'generate' | 'analyze' | 'upload' | 'gallery' | 'blog' | 'pipeline' | 'trends' | 'calendar' | 'auditor';
 
 export type AspectRatio = 
   | '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:1' 
