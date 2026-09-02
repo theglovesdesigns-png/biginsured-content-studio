@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 const getEnvPassword = () => {
@@ -11,7 +10,7 @@ const getEnvPassword = () => {
 const SITE_PASSWORD = getEnvPassword();
 
 interface SitePasswordProps {
-    onUnlock: () => void;
+    onUnlocked: () => void;
 }
 
 const BigLogo = () => (
@@ -22,7 +21,7 @@ const BigLogo = () => (
     </svg>
 );
 
-const SitePassword: React.FC<SitePasswordProps> = ({ onUnlock }) => {
+const SitePassword: React.FC<SitePasswordProps> = ({ onUnlocked }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +29,7 @@ const SitePassword: React.FC<SitePasswordProps> = ({ onUnlock }) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (password === SITE_PASSWORD) {
-            onUnlock();
+            onUnlocked();
         } else {
             setError('Access Denied. Incorrect credential.');
             setPassword('');
@@ -115,7 +114,7 @@ const SitePassword: React.FC<SitePasswordProps> = ({ onUnlock }) => {
             </div>
             
             <div className="mt-12 text-gray-400 text-[10px] font-bold uppercase tracking-widest z-10 opacity-50">
-                &copy; 2025 BIGINSURED.com • Professional Workflow System
+                &copy; 2026 BIGINSURED.com • Professional Workflow System
             </div>
         </div>
     );
