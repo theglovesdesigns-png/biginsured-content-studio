@@ -1,4 +1,3 @@
-
 import { Type } from "@google/genai";
 import { AspectRatio, BlogPost, BlogSeries, SeriesPost } from '../types';
 import { getPositiveFeedbackExamples, getNegativeFeedbackExamples } from './feedbackService';
@@ -11,7 +10,6 @@ const MODELS = {
     PRO:          'gemini-2.5-pro',              // Deep reasoning, blog writing, series
     FLASH:        'gemini-2.5-flash',            // Fast tasks, analysis, trends
     IMAGE_GEN:    'gemini-2.5-flash-image', // Image generation
-    TTS:          'gemini-2.5-flash-preview-tts', // Text-to-speech
 } as const;
 
 // ============================================================
@@ -118,61 +116,6 @@ export const generateBlogSeries = async (
     } catch (error) {
         console.error("Series Generation Error:", error);
         throw error;
-    }
-};
-
-// ============================================================
-// VOICEOVER GENERATION
-// ============================================================
-export const generateVoiceover = async (text: string, style: string, voiceId: string, targetDuration?: string): Promise<string> => {
-    const voiceMap: Record<string, string> = {
-        'emma': 'Kore',
-        'lily': 'Zephyr',
-        'james': 'Charon',
-        'caleb': 'Fenrir',
-        'beau': 'Puck'
-    };
-
-    const voiceName = voiceMap[voiceId] || 'Kore';
-    const isMale = ['james', 'caleb', 'beau'].includes(voiceId);
-
-    let prompt = isMale
-        ? `[VOICE CHARACTERISTICS: Deep, masculine, authoritative, non-feminine male voice].`
-        : `[VOICE CHARACTERISTICS: Clear, professional, feminine female voice].`;
-
-    if (voiceId === 'beau') {
-        prompt += ` [ACCENT: Mild Southern USA / Appalachian accent. Warm, folksy, and approachable but professional].`;
-    }
-
-    prompt += ` Say ${style.toLowerCase()}ly: ${text}`;
-
-    if (targetDuration) {
-        prompt = `[TARGET DURATION: ${targetDuration}]. ${prompt}. Adjust speaking pace to match this target duration as closely as possible.`;
-    }
-
-    try {
-        const response = await callGeminiProxy({
-            model: MODELS.TTS,
-            contents: [{ parts: [{ text: prompt }] }],
-            config: {
-                responseModalities: ['AUDIO'],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName },
-                    },
-                },
-            },
-        });
-
-        const base64Audio = response.inlineData?.data;
-        if (!base64Audio) {
-            throw new Error("No audio data returned from Gemini TTS.");
-        }
-        return base64Audio;
-    } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error("TTS Error:", msg);
-        throw new Error(msg);
     }
 };
 
