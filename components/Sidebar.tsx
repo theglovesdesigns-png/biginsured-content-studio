@@ -143,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, userEmail, upl
                             color: 'var(--red)',
                             marginTop: 2,
                         }}>
-                            Hub · v4.0.0
+                            Hub · v4.1.0
                         </div>
                     </div>
                 </div>
