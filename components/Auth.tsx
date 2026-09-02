@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getSupabaseClient } from '../services/supabaseClient';
 
@@ -185,7 +184,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
             {/* Footer */}
             <div className="mt-12 text-gray-400 text-[10px] font-bold uppercase tracking-widest z-10 opacity-50">
-                &copy; 2025 BIGINSURED.com Content Studio • Private Office System
+                &copy; 2026 BIGINSURED.com Content Studio • Private Office System
             </div>
         </div>
     );
