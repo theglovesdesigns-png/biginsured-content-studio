@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { fetchGoogleSheetData } from '../services/googleSheetsService';
 import { ChevronDown, ChevronUp, Play, CheckCircle2, Send, Clock, AlertCircle, Plus, X, Type, Tag, Calendar, Terminal, Settings, Database, Scale, BarChart2 } from 'lucide-react';
@@ -42,7 +41,7 @@ interface PipelineProps {
         bestPostingTime?: string,
         timestamp?: string
     }) => void;
-    onNavigate?: (tab: 'landing' | 'settings' | 'generate' | 'analyze' | 'upload' | 'gallery' | 'blog' | 'voiceover' | 'pipeline' | 'trends' | 'calendar' | 'auditor') => void;
+    onNavigate?: (tab: 'landing' | 'settings' | 'generate' | 'analyze' | 'upload' | 'gallery' | 'blog' | 'pipeline' | 'trends' | 'calendar' | 'auditor') => void;
 }
 
 type SyncState = 'idle' | 'loading' | 'success' | 'error';
