@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import Sidebar from './components/Sidebar';
@@ -7,7 +6,6 @@ import Uploader from './components/Uploader';
 import ImageAnalyzer from './components/ImageAnalyzer';
 import Gallery from './components/Gallery';
 import BlogBuilder from './components/BlogBuilder';
-import Voiceover from './components/Voiceover';
 import Pipeline from './components/Pipeline';
 import Trends from './components/Trends';
 import ContentCalendar from './components/ContentCalendar';
@@ -30,7 +28,7 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>(() => {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
-        const validTabs: Tab[] = ['landing', 'settings', 'generate', 'analyze', 'upload', 'gallery', 'blog', 'voiceover', 'pipeline', 'trends', 'calendar', 'auditor'];
+        const validTabs: Tab[] = ['landing', 'settings', 'generate', 'analyze', 'upload', 'gallery', 'blog', 'pipeline', 'trends', 'calendar', 'auditor'];
         return (validTabs.includes(tab as Tab)) ? (tab as Tab) : 'landing';
     });
     const [uploadQueue, setUploadQueue] = useState<ManagedFile[]>([]);
@@ -197,18 +195,6 @@ const App: React.FC = () => {
                             externalPrompt={generatorPrompt}
                             onPromptConsumed={() => setGeneratorPrompt(null)}
                         />
-                    </PageShell>
-                );
-            case 'voiceover':
-                return (
-                    <PageShell
-                        title="Voice Studio"
-                        subtitle="Generate professional AI voiceovers for video and podcast content"
-                        accentColor="#7c3aed"
-                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z M19 10v2a7 7 0 01-14 0v-2 M12 19v4 M8 23h8"/></svg>}
-                        maxWidth={800}
-                    >
-                        <Voiceover />
                     </PageShell>
                 );
             case 'analyze':
