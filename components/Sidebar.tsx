@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTheme } from './ThemeProvider';
 import { getSupabaseClient } from '../services/supabaseClient';
@@ -61,7 +60,6 @@ const NAV: NavGroup[] = [
         items: [
             { id: 'blog',      label: 'Blog Architect',  icon: PATHS.blog },
             { id: 'generate',  label: 'Image Studio',    icon: PATHS.image },
-            { id: 'voiceover', label: 'Voice Studio',    icon: PATHS.mic },
         ]
     },
     {
