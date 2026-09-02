@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tab } from '../types';
 
@@ -284,10 +283,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                 </span>
                                 <div className="divider" style={{ flex: 1 }} />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                                 <ToolCard id="blog"      label="Blog Architect" desc="Full SEO posts + series strategies"         icon={ICONS.blog}     accentColor="var(--red)"   onNavigate={onNavigate} />
                                 <ToolCard id="generate"  label="Image Studio"   desc="AI visuals for web, social, YouTube"        icon={ICONS.image}    accentColor="var(--blue)"  onNavigate={onNavigate} />
-                                <ToolCard id="voiceover" label="Voice Studio"   desc="Professional AI voiceovers"                 icon={ICONS.mic}      accentColor="#7c3aed"      onNavigate={onNavigate} />
                             </div>
                         </div>
 
