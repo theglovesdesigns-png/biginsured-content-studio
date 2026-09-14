@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { generateBlogPost, generateBlogSeries } from '../services/geminiService';
+import { generateBlogPost } from '../services/claudeService';
+import { generateBlogSeries } from '../services/geminiService';
 import { sendBlogToSheet } from '../services/sheetService';
 import { updatePipelineStatus } from '../services/pipelinePersistence';
 import { upsertBlogPost } from '../services/postService';
