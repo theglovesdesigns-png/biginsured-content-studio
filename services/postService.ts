@@ -2,12 +2,15 @@ import { getSupabaseClient } from './supabaseClient';
 import { Post } from '../types';
 import { SUPABASE_CONFIG } from './config';
 
-// Fetches a simplified list of posts for the dropdown
+// Fetches a simplified list of posts for the dropdown, plus the fields
+// Content Audit's "Website" tab needs to show when/where each post is
+// actually live (published_at is the real "went live" timestamp — NOT
+// created_at, which can predate actual publication).
 export const fetchPosts = async (): Promise<Post[]> => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
         .from(SUPABASE_CONFIG.POSTS_TABLE)
-        .select('id, title, original_title, slug, category, status')
+        .select('id, title, original_title, slug, category, status, published_at, published_url, canonical_url')
         .order('created_at', { ascending: false });
 
     if (error) {
