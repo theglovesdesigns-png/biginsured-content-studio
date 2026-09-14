@@ -1,4 +1,3 @@
-
 /**
  * OFFICE CONFIGURATION CENTER
  * 
@@ -14,7 +13,7 @@ export const SUPABASE_CONFIG = {
     SUPABASE_ANON_KEY: (typeof process !== 'undefined' && process.env && process.env.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvcWd5cmRqY21ta2NiaHltd2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDQwMjcsImV4cCI6MjA3Mzg4MDAyN30.eFUQrLf9WGUC3WRb3pvProkiVWwUlyR7Id-ojQG9E_M',
 
     // === GOOGLE SHEETS CONNECTION ===
-    GOOGLE_SHEETS_WEBHOOK_URL: (typeof process !== 'undefined' && process.env && process.env.GOOGLE_SHEETS_WEBHOOK_URL) || 'https://script.google.com/macros/s/AKfycbz94xQn4p9r5E9B7w8rohSz31xawz5_2N6lB5goXXZKuRwwjpnNpTMUbSdLlu6edQ5xMg/exec',
+    GOOGLE_SHEETS_WEBHOOK_URL: (typeof process !== 'undefined' && process.env && process.env.GOOGLE_SHEETS_WEBHOOK_URL) || 'https://script.google.com/macros/s/AKfycbzHHnvxjTYqc5hdq99SOOkLddEKR7rV3pAlrMM1hnHYpt0ZAl4pLlITLSTRUj2Fs54TQA/exec',
 
     // === STORAGE BUCKETS ===
     IMAGES_BUCKET: 'blog-images',
