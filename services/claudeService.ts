@@ -157,6 +157,8 @@ You may reference comparing carriers or how an independent agency works with mul
 
 Return ONLY a single valid JSON object, no commentary before or after it, no markdown code fences around it, matching exactly this shape:
 
+CRITICAL JSON VALIDITY RULE: Any double-quote character (") that appears INSIDE a string value — for example if you quote a phrase, write $300,000 with quotation marks around a term, or use "smart quotes" in a sentence — MUST be escaped as \\" so the JSON stays valid. The same applies to any literal backslash (\\) or newline inside a string value (escape as \\\\ and \\n respectively). This is not optional — a single unescaped quote inside a string breaks the entire response. When in doubt, prefer rewording to avoid quotation marks inside your prose entirely (e.g. write "quote-unquote full coverage" as a plain phrase without quotation marks) rather than risk an unescaped quote.
+
 {
   "title": string,
   "slug": string,
@@ -184,6 +186,87 @@ Return ONLY a single valid JSON object, no commentary before or after it, no mar
 }
 
 The "content" field must be full Markdown (## headings, **bold**, bulleted/numbered lists as appropriate) — this matches BIG's real published content format.`;
+
+/**
+ * Parses Claude's JSON output, with a fallback repair pass for the one
+ * known failure mode: an unescaped double-quote character INSIDE a string
+ * value (e.g. Claude writes a quoted phrase in the article body without
+ * escaping it). The system prompt instructs Claude to escape these, but
+ * this is a defensive second layer so a rare slip doesn't surface as a
+ * raw parse error in the UI.
+ *
+ * The repair strategy: walk the raw text character by character, tracking
+ * whether we're currently inside a JSON string. If we hit a `"` that is
+ * NOT immediately followed by a JSON structural character (`,` `:` `}` `]`
+ * or whitespace-then-one-of-those), it's almost certainly a quote INSIDE
+ * the string content rather than the string's closing quote — so we
+ * escape it instead of treating it as the end of the string.
+ */
+const parseBlogPostJson = (rawJson: string): BlogPost => {
+    try {
+        return JSON.parse(rawJson) as BlogPost;
+    } catch (firstError) {
+        console.warn('Claude JSON parse failed on first attempt, trying repair pass:', firstError);
+
+        let repaired = '';
+        let inString = false;
+        let escapeNext = false;
+
+        for (let i = 0; i < rawJson.length; i++) {
+            const char = rawJson[i];
+
+            if (escapeNext) {
+                repaired += char;
+                escapeNext = false;
+                continue;
+            }
+
+            if (char === '\\') {
+                repaired += char;
+                escapeNext = true;
+                continue;
+            }
+
+            if (char === '"') {
+                if (!inString) {
+                    // Opening a string — always a real quote.
+                    inString = true;
+                    repaired += char;
+                    continue;
+                }
+                // We're inside a string and hit a quote. Look ahead past
+                // whitespace to see what comes next.
+                let j = i + 1;
+                while (j < rawJson.length && /\s/.test(rawJson[j])) j++;
+                const next = rawJson[j];
+                const looksLikeRealClose = next === undefined || [',', ':', '}', ']'].includes(next);
+
+                if (looksLikeRealClose) {
+                    inString = false;
+                    repaired += char;
+                } else {
+                    // This quote is inside the string's actual content —
+                    // escape it instead of ending the string here.
+                    repaired += '\\"';
+                }
+                continue;
+            }
+
+            repaired += char;
+        }
+
+        try {
+            return JSON.parse(repaired) as BlogPost;
+        } catch (secondError) {
+            // Repair pass didn't fix it either — surface a clear error
+            // rather than a cryptic native JSON.parse message.
+            console.error('Claude JSON repair pass also failed:', secondError);
+            throw new Error(
+                'Claude returned content that could not be parsed as valid JSON, even after an automatic repair attempt. Try generating again — this is usually a one-off formatting slip.'
+            );
+        }
+    }
+};
 
 /**
  * Generates a single blog post using Claude.
@@ -228,7 +311,7 @@ Return only the JSON object described in your instructions — nothing else.`;
         // markdown code fences defensively in case a fenced block slips through.
         const cleaned = rawText.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
 
-        const parsed = JSON.parse(cleaned) as BlogPost;
+        const parsed = parseBlogPostJson(cleaned);
 
         // Defensive defaults for fields the UI/pipeline expects to exist,
         // in case the model omits an optional one.
