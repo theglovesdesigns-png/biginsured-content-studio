@@ -10,7 +10,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { SUPABASE_CONFIG } from '../services/config';
 
 interface BlogBuilderProps {
-    onSendImagePrompt: (prompt: string, metadata?: GeneratorPrompt['metadata']) => void;
+    onSendImagePrompt: (prompt: GeneratorPrompt) => void;
     initialTopic?: string | null;
     onTopicConsumed?: () => void;
 }
@@ -313,7 +313,22 @@ ${generatedPost.content}
     const handleTransitionToImage = (prompt: string, imageType?: GeneratorPrompt['metadata']['imageType']) => {
         setIsNavigatingToGenerator(true);
         setTimeout(() => {
-            onSendImagePrompt(prompt, generatedPost?.slug ? { slug: generatedPost.slug, imageType: imageType || 'hero' } : undefined);
+            // BUG FIX (9/14/2026): this used to call onSendImagePrompt(prompt, metadata)
+            // with two separate arguments — a raw string plus a metadata object.
+            // But onSendImagePrompt (wired to App.tsx's handleSendToGenerator) expects
+            // ONE argument: a full GeneratorPrompt object shaped {text, timestamp, metadata}.
+            // Passing a bare string meant ImageGenerator.tsx's externalPrompt.text lookup
+            // was reading .text off a plain string (undefined), which crashed the Image
+            // Studio screen to a blank black page with no visible error. Building the
+            // proper object here fixes the crash.
+            const generatorPrompt: GeneratorPrompt = {
+                text: prompt,
+                timestamp: Date.now(),
+                metadata: generatedPost?.slug
+                    ? { slug: generatedPost.slug, imageType: imageType || 'hero' }
+                    : undefined,
+            };
+            onSendImagePrompt(generatorPrompt);
             setIsNavigatingToGenerator(false);
         }, 1200);
     };
