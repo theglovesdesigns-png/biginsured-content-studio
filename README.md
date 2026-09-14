@@ -151,7 +151,7 @@ Google occasionally renames or deprecates model versions — if generation sudde
 
 This project uses simple semantic versioning, tracked in `package.json` and shown live in the app sidebar (under the logo).
 
-- **Current version: v4.1.0** — voiceover removed, site-password unlock bug fixed, migration to Claude for text generation begins (started 9/2/2026)
+- **Current version: v5.0.0** — voiceover removed, site-password unlock bug fixed, migration to Claude for text generation begins (started 9/2/2026)
 - Going forward, bump the version in `package.json` for every meaningful update:
   - **Patch** (v2.0.1): bug fixes, small tweaks
   - **Minor** (v2.1.0): new features, new tools, non-breaking improvements
