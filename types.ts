@@ -29,10 +29,14 @@ export interface GalleryImage {
 export interface Post {
     id: number;
     title: string;
+    original_title?: string;
     slug: string;
     category?: string;
     status?: string;
     featured_image_url?: string;
+    published_at?: string; // the real "went live on the website" timestamp
+    published_url?: string;
+    canonical_url?: string;
 }
 
 export interface InlineImage {
