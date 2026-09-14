@@ -24,9 +24,17 @@ import { BlogPost, InlineImage } from '../types';
 const CLAUDE_MODEL = 'claude-sonnet-5';
 
 // ============================================================
-// SECURE PROXY CALL
-// Mirrors callGeminiProxy in geminiService.ts on purpose — same shape,
-// same error handling, so the pattern is familiar across both files.
+// SECURE PROXY CALL (STREAMING)
+// claude-proxy.ts now streams its response as newline-delimited JSON
+// chunks (changed 9/14/2026, to avoid Netlify's ~26s function timeout
+// on long article generations — see the comment at the top of
+// claude-proxy.ts for the full explanation). Each line is one of:
+//   { "textDelta": "..." }                          — a piece of text
+//   { "done": true, "stopReason": ..., "usage": ... } — the final line
+//   { "error": "..." }                                — something went wrong mid-stream
+// This function reads the stream, reassembles the full text, and returns
+// it in the same shape callers already expect — so generateBlogPost below
+// didn't need to change at all.
 // ============================================================
 interface ClaudeProxyResponse {
     text?: string;
@@ -46,7 +54,49 @@ const callClaudeProxy = async (params: Record<string, unknown>): Promise<ClaudeP
         throw new Error(errBody.error || `Claude proxy request failed (${res.status})`);
     }
 
-    return res.json();
+    if (!res.body) {
+        throw new Error('Claude proxy returned no response body.');
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    let stopReason: string | undefined;
+    let usage: { input_tokens: number; output_tokens: number } | undefined;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // keep any incomplete trailing line for next chunk
+
+        for (const line of lines) {
+            if (!line.trim()) continue;
+
+            let parsed: any;
+            try {
+                parsed = JSON.parse(line);
+            } catch {
+                continue; // skip a malformed line rather than failing the whole generation
+            }
+
+            if (parsed.error) {
+                throw new Error(parsed.error);
+            }
+            if (typeof parsed.textDelta === 'string') {
+                fullText += parsed.textDelta;
+            }
+            if (parsed.done) {
+                stopReason = parsed.stopReason;
+                usage = parsed.usage;
+            }
+        }
+    }
+
+    return { text: fullText, stopReason, usage };
 };
 
 // ============================================================
