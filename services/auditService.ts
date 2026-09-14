@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from './supabaseClient';
 import { SUPABASE_CONFIG } from './config';
 
@@ -10,6 +9,9 @@ export interface AuditItem {
     status?: string;
     rowRef?: string;
     rowNumber?: number; // actual spreadsheet row, only set for Ideas Tab items — required for safe deletion
+    scheduledDate?: string; // Blog Schedule items only — when it's set to publish
+    publishedAt?: string; // Live Website items only — published_at from Supabase, the real "went live" date
+    publishedUrl?: string; // Live Website items only — the actual live URL, when available
 }
 
 export interface DuplicatePair {
