@@ -153,17 +153,16 @@ You may reference comparing carriers or how an independent agency works with mul
 - Ohio insurance minimums and regulations can change — if you're not certain a specific figure is current, speak in general terms rather than stating a number with false confidence.
 - Don't flatten genuinely nuanced or carrier-dependent topics into false certainty. A brief, honest "this varies by carrier and policy" beats a confident wrong answer.
 
-## Output format
+## Output format — TWO PARTS, in this exact order
 
-Return ONLY a single valid JSON object, no commentary before or after it, no markdown code fences around it, matching exactly this shape:
+Your response must have exactly two parts, in this order, with nothing else before, after, or between them.
 
-CRITICAL JSON VALIDITY RULE: Any double-quote character (") that appears INSIDE a string value — for example if you quote a phrase, write $300,000 with quotation marks around a term, or use "smart quotes" in a sentence — MUST be escaped as \\" so the JSON stays valid. The same applies to any literal backslash (\\) or newline inside a string value (escape as \\\\ and \\n respectively). This is not optional — a single unescaped quote inside a string breaks the entire response. When in doubt, prefer rewording to avoid quotation marks inside your prose entirely (e.g. write "quote-unquote full coverage" as a plain phrase without quotation marks) rather than risk an unescaped quote.
+### Part 1: A JSON object with everything EXCEPT the article body
 
 {
   "title": string,
   "slug": string,
   "excerpt": string,
-  "content": string,
   "category": "Home Insurance" | "Auto Insurance" | "Business Insurance" | "General Insurance" | "Claims",
   "author": "Bradley Insurance Group",
   "meta_title": string,
@@ -185,87 +184,58 @@ CRITICAL JSON VALIDITY RULE: Any double-quote character (") that appears INSIDE 
   "inline_image_strategy": string
 }
 
-The "content" field must be full Markdown (## headings, **bold**, bulleted/numbered lists as appropriate) — this matches BIG's real published content format.`;
+None of these fields should contain the full article body — keep them short. If any of these short fields happens to need a quotation mark inside it, escape it as \\" as normal valid JSON requires.
+
+### Part 2: The full article body, OUTSIDE the JSON, wrapped in this exact delimiter
+
+Immediately after the JSON object above, on its own new line, write exactly:
+===ARTICLE_CONTENT_START===
+Then the full article body in Markdown (## headings, **bold**, bulleted/numbered lists as appropriate) — write completely naturally here. Use quotation marks, apostrophes, dashes, dollar signs, or any punctuation exactly as normal writing requires. Nothing needs to be escaped in this section — this is plain text, not inside JSON.
+Then, on its own new line immediately after the article ends, write exactly:
+===ARTICLE_CONTENT_END===
+
+Do not add any commentary, explanation, or markdown code fences anywhere in your response — only the JSON object, the start delimiter, the article, and the end delimiter, in that exact order.`;
+
+const CONTENT_START_DELIMITER = '===ARTICLE_CONTENT_START===';
+const CONTENT_END_DELIMITER = '===ARTICLE_CONTENT_END===';
 
 /**
- * Parses Claude's JSON output, with a fallback repair pass for the one
- * known failure mode: an unescaped double-quote character INSIDE a string
- * value (e.g. Claude writes a quoted phrase in the article body without
- * escaping it). The system prompt instructs Claude to escape these, but
- * this is a defensive second layer so a rare slip doesn't surface as a
- * raw parse error in the UI.
+ * Splits Claude's two-part response into (1) the metadata JSON object and
+ * (2) the raw article body, using the delimiters defined in the system
+ * prompt. This is the fix for the JSON-parsing failures seen 9/14/2026:
+ * previously the ENTIRE article body had to be embedded as one giant JSON
+ * string value, which meant any quote, dash, or apostrophe Claude wrote
+ * naturally could break the surrounding JSON if not perfectly escaped —
+ * a fragile bet against ~2,000 words of free-form prose every single time.
  *
- * The repair strategy: walk the raw text character by character, tracking
- * whether we're currently inside a JSON string. If we hit a `"` that is
- * NOT immediately followed by a JSON structural character (`,` `:` `}` `]`
- * or whitespace-then-one-of-those), it's almost certainly a quote INSIDE
- * the string content rather than the string's closing quote — so we
- * escape it instead of treating it as the end of the string.
+ * Now the article body lives completely outside the JSON, between two
+ * plain-text markers. The JSON only ever has to hold short fields (title,
+ * slug, tags, etc.) where a stray quote is far less likely and far easier
+ * to catch. This removes the failure mode at its root rather than trying
+ * to repair broken JSON after the fact.
  */
-const parseBlogPostJson = (rawJson: string): BlogPost => {
-    try {
-        return JSON.parse(rawJson) as BlogPost;
-    } catch (firstError) {
-        console.warn('Claude JSON parse failed on first attempt, trying repair pass:', firstError);
+const splitTwoPartResponse = (rawText: string): { metadataJson: string; content: string } => {
+    const startIndex = rawText.indexOf(CONTENT_START_DELIMITER);
+    const endIndex = rawText.indexOf(CONTENT_END_DELIMITER);
 
-        let repaired = '';
-        let inString = false;
-        let escapeNext = false;
-
-        for (let i = 0; i < rawJson.length; i++) {
-            const char = rawJson[i];
-
-            if (escapeNext) {
-                repaired += char;
-                escapeNext = false;
-                continue;
-            }
-
-            if (char === '\\') {
-                repaired += char;
-                escapeNext = true;
-                continue;
-            }
-
-            if (char === '"') {
-                if (!inString) {
-                    // Opening a string — always a real quote.
-                    inString = true;
-                    repaired += char;
-                    continue;
-                }
-                // We're inside a string and hit a quote. Look ahead past
-                // whitespace to see what comes next.
-                let j = i + 1;
-                while (j < rawJson.length && /\s/.test(rawJson[j])) j++;
-                const next = rawJson[j];
-                const looksLikeRealClose = next === undefined || [',', ':', '}', ']'].includes(next);
-
-                if (looksLikeRealClose) {
-                    inString = false;
-                    repaired += char;
-                } else {
-                    // This quote is inside the string's actual content —
-                    // escape it instead of ending the string here.
-                    repaired += '\\"';
-                }
-                continue;
-            }
-
-            repaired += char;
-        }
-
-        try {
-            return JSON.parse(repaired) as BlogPost;
-        } catch (secondError) {
-            // Repair pass didn't fix it either — surface a clear error
-            // rather than a cryptic native JSON.parse message.
-            console.error('Claude JSON repair pass also failed:', secondError);
-            throw new Error(
-                'Claude returned content that could not be parsed as valid JSON, even after an automatic repair attempt. Try generating again — this is usually a one-off formatting slip.'
-            );
-        }
+    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+        throw new Error(
+            'Claude\'s response was missing the expected article content markers. Try generating again — this is usually a one-off formatting slip.'
+        );
     }
+
+    const metadataJson = rawText
+        .slice(0, startIndex)
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '');
+
+    const content = rawText
+        .slice(startIndex + CONTENT_START_DELIMITER.length, endIndex)
+        .trim();
+
+    return { metadataJson, content };
 };
 
 /**
@@ -295,7 +265,7 @@ Target word count: ${wordCountRange}
 Locality: ${locality}
 ${categoryInstruction}
 
-Return only the JSON object described in your instructions — nothing else.`;
+Follow the exact two-part output format described in your instructions — the metadata JSON object, then the delimited article content.`;
 
     try {
         const response = await callClaudeProxy({
@@ -305,13 +275,26 @@ Return only the JSON object described in your instructions — nothing else.`;
             messages: [{ role: 'user', content: userPrompt }],
         });
 
-        const rawText = response.text || '{}';
+        const rawText = response.text || '';
+        if (!rawText.trim()) {
+            throw new Error('Claude returned an empty response.');
+        }
 
-        // Claude generally follows "JSON only" instructions well, but strip
-        // markdown code fences defensively in case a fenced block slips through.
-        const cleaned = rawText.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+        const { metadataJson, content } = splitTwoPartResponse(rawText);
 
-        const parsed = parseBlogPostJson(cleaned);
+        let parsed: BlogPost;
+        try {
+            parsed = JSON.parse(metadataJson) as BlogPost;
+        } catch (jsonError) {
+            console.error('Claude metadata JSON parse failed. Raw metadata text:', metadataJson);
+            throw new Error(
+                'Claude returned metadata that could not be parsed as valid JSON. Try generating again — this is usually a one-off formatting slip.'
+            );
+        }
+
+        // The article body comes from the delimited section, not the JSON —
+        // this is the whole point of the two-part format.
+        parsed.content = content;
 
         // Defensive defaults for fields the UI/pipeline expects to exist,
         // in case the model omits an optional one.
