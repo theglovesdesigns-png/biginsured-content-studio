@@ -153,89 +153,81 @@ You may reference comparing carriers or how an independent agency works with mul
 - Ohio insurance minimums and regulations can change — if you're not certain a specific figure is current, speak in general terms rather than stating a number with false confidence.
 - Don't flatten genuinely nuanced or carrier-dependent topics into false certainty. A brief, honest "this varies by carrier and policy" beats a confident wrong answer.
 
-## Output format — TWO PARTS, in this exact order
+## Output format
 
-Your response must have exactly two parts, in this order, with nothing else before, after, or between them.
+Write the full article content in the "content" field of the JSON response. The response format itself is enforced automatically — you don't need to add any special markers or formatting instructions; just write naturally. The "content" field should contain the full article body in Markdown (## headings, **bold**, bulleted/numbered lists as appropriate) — this matches BIG's real published content format. Use quotation marks, apostrophes, dashes, or any punctuation exactly as normal writing requires.`;
 
-### Part 1: A JSON object with everything EXCEPT the article body
-
-{
-  "title": string,
-  "slug": string,
-  "excerpt": string,
-  "category": "Home Insurance" | "Auto Insurance" | "Business Insurance" | "General Insurance" | "Claims",
-  "author": "Bradley Insurance Group",
-  "meta_title": string,
-  "meta_description": string,
-  "tags_keywords": string[],
-  "estimated_reading_time": string,
-  "estimated_word_count": number,
-  "locality": "Ohio" | "Central Ohio" | "National",
-  "hero_image_prompt": string,
-  "hero_image_alt": string,
-  "hero_image_caption": string,
-  "inline_images": [ { "prompt": string, "alt": string, "caption": string, "placement_note": string } ],
-  "youtube_thumbnail_prompt": string,
-  "youtube_thumbnail_text": string,
-  "youtube_thumbnail_color": string,
-  "youtube_thumbnail_suggestions": string,
-  "status": "draft",
-  "featured": false,
-  "inline_image_strategy": string
-}
-
-None of these fields should contain the full article body — keep them short. If any of these short fields happens to need a quotation mark inside it, escape it as \\" as normal valid JSON requires.
-
-### Part 2: The full article body, OUTSIDE the JSON, wrapped in this exact delimiter
-
-Immediately after the JSON object above, on its own new line, write exactly:
-===ARTICLE_CONTENT_START===
-Then the full article body in Markdown (## headings, **bold**, bulleted/numbered lists as appropriate) — write completely naturally here. Use quotation marks, apostrophes, dashes, dollar signs, or any punctuation exactly as normal writing requires. Nothing needs to be escaped in this section — this is plain text, not inside JSON.
-Then, on its own new line immediately after the article ends, write exactly:
-===ARTICLE_CONTENT_END===
-
-Do not add any commentary, explanation, or markdown code fences anywhere in your response — only the JSON object, the start delimiter, the article, and the end delimiter, in that exact order.`;
-
-const CONTENT_START_DELIMITER = '===ARTICLE_CONTENT_START===';
-const CONTENT_END_DELIMITER = '===ARTICLE_CONTENT_END===';
-
-/**
- * Splits Claude's two-part response into (1) the metadata JSON object and
- * (2) the raw article body, using the delimiters defined in the system
- * prompt. This is the fix for the JSON-parsing failures seen 9/14/2026:
- * previously the ENTIRE article body had to be embedded as one giant JSON
- * string value, which meant any quote, dash, or apostrophe Claude wrote
- * naturally could break the surrounding JSON if not perfectly escaped —
- * a fragile bet against ~2,000 words of free-form prose every single time.
- *
- * Now the article body lives completely outside the JSON, between two
- * plain-text markers. The JSON only ever has to hold short fields (title,
- * slug, tags, etc.) where a stray quote is far less likely and far easier
- * to catch. This removes the failure mode at its root rather than trying
- * to repair broken JSON after the fact.
- */
-const splitTwoPartResponse = (rawText: string): { metadataJson: string; content: string } => {
-    const startIndex = rawText.indexOf(CONTENT_START_DELIMITER);
-    const endIndex = rawText.indexOf(CONTENT_END_DELIMITER);
-
-    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-        throw new Error(
-            'Claude\'s response was missing the expected article content markers. Try generating again — this is usually a one-off formatting slip.'
-        );
-    }
-
-    const metadataJson = rawText
-        .slice(0, startIndex)
-        .trim()
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/```\s*$/i, '');
-
-    const content = rawText
-        .slice(startIndex + CONTENT_START_DELIMITER.length, endIndex)
-        .trim();
-
-    return { metadataJson, content };
+// ============================================================
+// STRUCTURED OUTPUT SCHEMA
+// FIXED 9/15/2026: previously this file asked Claude to follow a
+// two-part text format (a JSON header + a separately-delimited article
+// body) via plain instructions. That fixed the original quote-escaping
+// crash, but introduced a NEW failure mode: Claude occasionally didn't
+// follow the delimiter instructions exactly, which surfaced as "Claude's
+// response was missing the expected article content markers."
+//
+// The real fix is Claude's native structured-output feature
+// (output_config.format below) — confirmed supported on claude-sonnet-5.
+// This constrains Claude's response at the token level so it is
+// STRUCTURALLY INCAPABLE of returning anything other than valid JSON
+// matching this schema — including automatically escaping any quotes,
+// apostrophes, or other punctuation inside string fields like "content".
+// This is the same category of guarantee Gemini's responseSchema gave
+// (which is why Gemini "felt more fluid" — it had this same guarantee
+// the whole time). No more delimiter parsing, no more repair passes.
+// ============================================================
+const BLOG_POST_SCHEMA = {
+    type: 'object',
+    properties: {
+        title: { type: 'string' },
+        slug: { type: 'string' },
+        excerpt: { type: 'string' },
+        content: { type: 'string' },
+        category: {
+            type: 'string',
+            enum: ['Home Insurance', 'Auto Insurance', 'Business Insurance', 'General Insurance', 'Claims'],
+        },
+        author: { type: 'string' },
+        meta_title: { type: 'string' },
+        meta_description: { type: 'string' },
+        tags_keywords: { type: 'array', items: { type: 'string' } },
+        estimated_reading_time: { type: 'string' },
+        estimated_word_count: { type: 'number' },
+        locality: { type: 'string', enum: ['Ohio', 'Central Ohio', 'National'] },
+        hero_image_prompt: { type: 'string' },
+        hero_image_alt: { type: 'string' },
+        hero_image_caption: { type: 'string' },
+        inline_images: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    prompt: { type: 'string' },
+                    alt: { type: 'string' },
+                    caption: { type: 'string' },
+                    placement_note: { type: 'string' },
+                },
+                required: ['prompt', 'alt', 'caption', 'placement_note'],
+                additionalProperties: false,
+            },
+        },
+        youtube_thumbnail_prompt: { type: 'string' },
+        youtube_thumbnail_text: { type: 'string' },
+        youtube_thumbnail_color: { type: 'string' },
+        youtube_thumbnail_suggestions: { type: 'string' },
+        status: { type: 'string' },
+        featured: { type: 'boolean' },
+        inline_image_strategy: { type: 'string' },
+    },
+    required: [
+        'title', 'slug', 'excerpt', 'content', 'category', 'author',
+        'meta_title', 'meta_description', 'tags_keywords', 'estimated_reading_time',
+        'estimated_word_count', 'locality', 'hero_image_prompt', 'hero_image_alt',
+        'hero_image_caption', 'inline_images', 'youtube_thumbnail_prompt',
+        'youtube_thumbnail_text', 'youtube_thumbnail_color', 'youtube_thumbnail_suggestions',
+        'status', 'featured', 'inline_image_strategy',
+    ],
+    additionalProperties: false,
 };
 
 /**
@@ -263,9 +255,7 @@ Topic idea: ${titleIdea}
 Details: ${description}
 Target word count: ${wordCountRange}
 Locality: ${locality}
-${categoryInstruction}
-
-Follow the exact two-part output format described in your instructions — the metadata JSON object, then the delimited article content.`;
+${categoryInstruction}`;
 
     try {
         const response = await callClaudeProxy({
@@ -273,6 +263,12 @@ Follow the exact two-part output format described in your instructions — the m
             max_tokens: 8000, // safety cap — prevents unbounded/runaway cost per call, unlike the old Gemini path
             system: BLOG_SYSTEM_PROMPT,
             messages: [{ role: 'user', content: userPrompt }],
+            output_config: {
+                format: {
+                    type: 'json_schema',
+                    schema: BLOG_POST_SCHEMA,
+                },
+            },
         });
 
         const rawText = response.text || '';
@@ -280,21 +276,21 @@ Follow the exact two-part output format described in your instructions — the m
             throw new Error('Claude returned an empty response.');
         }
 
-        const { metadataJson, content } = splitTwoPartResponse(rawText);
-
+        // With output_config.format in place, Claude is structurally
+        // constrained to return valid JSON matching BLOG_POST_SCHEMA —
+        // no delimiter parsing, no repair pass, no "missing markers" error
+        // is possible anymore. A JSON.parse failure here would mean
+        // something more fundamental broke (e.g. an empty/truncated
+        // response), not a formatting slip.
         let parsed: BlogPost;
         try {
-            parsed = JSON.parse(metadataJson) as BlogPost;
+            parsed = JSON.parse(rawText) as BlogPost;
         } catch (jsonError) {
-            console.error('Claude metadata JSON parse failed. Raw metadata text:', metadataJson);
+            console.error('Claude structured-output parse failed. Raw text:', rawText);
             throw new Error(
-                'Claude returned metadata that could not be parsed as valid JSON. Try generating again — this is usually a one-off formatting slip.'
+                'Claude returned a response that could not be parsed, even with structured output enabled. Try generating again.'
             );
         }
-
-        // The article body comes from the delimited section, not the JSON —
-        // this is the whole point of the two-part format.
-        parsed.content = content;
 
         // Defensive defaults for fields the UI/pipeline expects to exist,
         // in case the model omits an optional one.
