@@ -260,7 +260,17 @@ ${categoryInstruction}`;
     try {
         const response = await callClaudeProxy({
             model: CLAUDE_MODEL,
-            max_tokens: 8000, // safety cap — prevents unbounded/runaway cost per call, unlike the old Gemini path
+            // RAISED 9/15/2026: a 2,000-word article body alone is
+            // roughly 2,600 tokens, plus the surrounding JSON fields
+            // (title, excerpt, meta fields, tags, image prompts, etc).
+            // 8000 should have been comfortable margin on paper, but a
+            // real generation was observed truncating mid-article around
+            // ~900-1000 words — raising this to 16000 gives real headroom
+            // rather than guessing at the exact minimum needed. Also see
+            // the stop_reason check below, which now surfaces WHY a
+            // response was cut short instead of failing silently into a
+            // generic parse error.
+            max_tokens: 16000,
             system: BLOG_SYSTEM_PROMPT,
             messages: [{ role: 'user', content: userPrompt }],
             output_config: {
@@ -271,6 +281,17 @@ ${categoryInstruction}`;
             },
         });
 
+        // If Claude was cut off by the token limit, say so clearly rather
+        // than letting it fail as an opaque JSON parse error further down.
+        // This was previously silently discarded even though the proxy
+        // was already capturing it — fixed 9/15/2026.
+        if (response.stopReason === 'max_tokens') {
+            console.error('Claude generation hit max_tokens before finishing. Raw text so far:', response.text);
+            throw new Error(
+                'Claude ran out of room before finishing the article (hit the token limit). Try a shorter word-count target, or try generating again.'
+            );
+        }
+
         const rawText = response.text || '';
         if (!rawText.trim()) {
             throw new Error('Claude returned an empty response.');
@@ -279,9 +300,9 @@ ${categoryInstruction}`;
         // With output_config.format in place, Claude is structurally
         // constrained to return valid JSON matching BLOG_POST_SCHEMA —
         // no delimiter parsing, no repair pass, no "missing markers" error
-        // is possible anymore. A JSON.parse failure here would mean
-        // something more fundamental broke (e.g. an empty/truncated
-        // response), not a formatting slip.
+        // is possible anymore. A JSON.parse failure here (with a non-
+        // max_tokens stop reason) would mean something more fundamental
+        // broke, not a formatting slip.
         let parsed: BlogPost;
         try {
             parsed = JSON.parse(rawText) as BlogPost;
